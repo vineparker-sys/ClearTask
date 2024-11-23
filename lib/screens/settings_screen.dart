@@ -1,8 +1,10 @@
+import 'package:ClearTask/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/current_user.dart'; // Corrigido para usar CurrentUser
 import 'task_list_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
   static const routeName = '/settings';
@@ -37,8 +39,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final primaryColor = Theme.of(context).primaryColor;
     final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
-    final textColor = isDarkMode ? const Color(0xFF05F7C0) : const Color(0xFF24746C);
-    final secondaryTextColor = isDarkMode ? const Color(0xFF7C808D) : Colors.grey;
+    final textColor =
+        isDarkMode ? const Color(0xFF05F7C0) : const Color(0xFF24746C);
+    final secondaryTextColor =
+        isDarkMode ? const Color(0xFF7C808D) : Colors.grey;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -154,6 +158,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 // Abrir termos de uso
               },
             ),
+
+            const SizedBox(height: 32),
+            Center(
+              child: TextButton(
+                onPressed: () async {
+                  // Limpar SharedPreferences
+                  SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  await prefs.clear();
+                  CurrentUser.clearUser();
+
+                  // Navegar para a tela de login
+                  Navigator.pushReplacementNamed(
+                      context, LoginScreen.routeName);
+                },
+                child: Text(
+                  'Sair',
+                  style: TextStyle(
+                      color: Colors.red, fontSize: 15),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -194,7 +220,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildListTile(BuildContext context,
-      {required String title, required IconData icon, required VoidCallback onTap, required Color textColor}) {
+      {required String title,
+      required IconData icon,
+      required VoidCallback onTap,
+      required Color textColor}) {
     return ListTile(
       leading: Icon(icon, color: textColor),
       title: Text(title, style: TextStyle(color: textColor)),
@@ -204,7 +233,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSwitchTile(
-      {required String title, required bool value, required ValueChanged<bool> onChanged, required Color textColor}) {
+      {required String title,
+      required bool value,
+      required ValueChanged<bool> onChanged,
+      required Color textColor}) {
     return SwitchListTile(
       title: Text(title, style: TextStyle(color: textColor)),
       activeColor: textColor,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../db/database_helper.dart';
 import 'login_screen.dart';
+import 'package:email_validator/email_validator.dart';
 
 class RegisterScreen extends StatefulWidget {
   static const routeName = '/register';
@@ -37,16 +38,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    if (password != confirmPassword) {
+    if (!EmailValidator.validate(email)){
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('As senhas não coincidem!')),
+        const SnackBar(content: Text('Email inválido! Favor inserir um formato de email válido.')),
       );
       return;
     }
 
-    if (!_isChecked) {
+    if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Você deve aceitar os termos e condições!')),
+        const SnackBar(content: Text('As senhas não coincidem!')),
       );
       return;
     }
@@ -231,7 +232,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const Expanded(
                     child: Text(
-                      'Aceito receber emails com promoções e ofertas.',
+                      'Aceito receber emails com promoções e ofertas. ',
                       style: TextStyle(fontSize: 14),
                     ),
                   ),
@@ -256,20 +257,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            // Termos de Uso
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  // Abrir termos de uso
-                },
-                child: const Text(
-                  'Termos de Uso e Política de Privacidade',
-                  style: TextStyle(
-                    decoration: TextDecoration.underline,
-                  ),
+            // Termos de Uso 
+             Center(
+              child: RichText(
+                textAlign: TextAlign.center,
+                  text: TextSpan(
+                    text: 'Ao se registrar, você concorda com ',
+                    style: TextStyle(color: Color(0xFF24746C), fontSize: 14),
+                  children: [
+                    TextSpan(text: 'os\n'), // Linha separada
+                    TextSpan(
+                      text: 'Termos de Uso e Política de Privacidade',
+                      style: TextStyle(
+                      color: Colors.purple, // Cor para destacar o texto clicável
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline
+                      ),
+                    //recognizer: TapGestureRecognizer()
+                      //..onTap = () {
+              //     // Ação ao clicar em "Termos de Serviço"
+                      // print('Termos de Serviço clicado!');
+              //     // Aqui você pode navegar para outra tela ou abrir um link.
+                    //},
+                    ),
+                  ],
                 ),
-              ),
-            ),
+              )
+            ), 
           ],
         ),
       ),

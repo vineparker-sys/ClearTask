@@ -1,11 +1,13 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import '../db/database_helper.dart';
 import '../utils/current_user.dart'; // Importa a classe CurrentUser
 import 'task_list_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login';
-
   const LoginScreen({super.key});
 
   @override
@@ -16,9 +18,63 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _rememberMe = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoggedIn(); // Verifica o estado inicial
+  }
+
+  void _checkLoggedIn() async {
+    await Future.delayed(Duration(seconds: 2)); 
+    
+    final prefs = await SharedPreferences.getInstance();
+    final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    final List<String>? user = prefs.getStringList('User');
+
+     setState(() {
+      _rememberMe = isLoggedIn;
+      _isLoading = false; // Termina o carregamento
+    });
+
+    if (context.mounted) {
+      if (isLoggedIn) {
+        if(user != null){
+        CurrentUser.setUser(user[0], user[1]);
+        Navigator.pushReplacementNamed(context, TaskListScreen.routeName);
+        }
+      }
+    }
+  }
+
+  Future<void> _login(Map<String, dynamic> user) async {
+    // Armazena o usuário logado
+    CurrentUser.setUser(user['name'], user['email']);
+
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      // Set a flag to remember the user
+      await prefs.setBool('isLoggedIn', true);
+      await prefs.setStringList('User', [user['name'], user['email']]);
+    }
+    // Navigate to main screen after login
+    Navigator.pushReplacementNamed(context, TaskListScreen.routeName);
+  }
 
   @override
   Widget build(BuildContext context) {
+     if (_isLoading) {
+      // Exibe um indicador de carregamento enquanto verifica o login
+      return Scaffold(
+        backgroundColor: const Color(0xFF24736E),
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.white), // Carregando...
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF24736E), // Fundo verde escuro
       body: Stack(
@@ -62,7 +118,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Caixa de texto: E-mail
                 TextField(
                   controller: emailController,
-                  style: const TextStyle(color: Color(0xFF24736E)), // Texto verde escuro
+                  style: const TextStyle(
+                      color: Color(0xFF24736E)), // Texto verde escuro
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white, // Fundo branco
@@ -80,7 +137,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextField(
                   controller: passwordController,
                   obscureText: !_isPasswordVisible,
-                  style: const TextStyle(color: Color(0xFF24736E)), // Texto verde escuro
+                  style: const TextStyle(
+                      color: Color(0xFF24736E)), // Texto verde escuro
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white, // Fundo branco
@@ -92,7 +150,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                        _isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                         color: const Color(0xFF24736E),
                       ),
                       onPressed: () {
@@ -103,37 +163,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
 
-                // Botão: Esqueci a senha
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Recuperação de Senha'),
-                          content: const Text(
-                              'Um e-mail foi enviado para recuperar sua senha.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('OK'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'Esqueci a senha',
-                      style: TextStyle(
-                        color: Color(0xFF85DDBE), // Verde claro do protótipo
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                const SizedBox(height: 10),
+                // Checkbox "Lembre-se de mim"
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          _rememberMe = value ?? false;
+                        });
+                      },
+                      checkColor: Colors.white,
+                      activeColor: Colors.teal,
                     ),
-                  ),
+                    const Text(
+                      'Lembre-se de mim',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
 
@@ -147,24 +196,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       if (email.isEmpty || password.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Preencha todos os campos!')),
+                          const SnackBar(
+                              content: Text('Preencha todos os campos!')),
                         );
                         return;
                       }
 
                       final dbHelper = DatabaseHelper.instance;
-                      final user = await dbHelper.getUserByEmailAndPassword(email, password);
+                      final user = await dbHelper.getUserByEmailAndPassword(
+                          email, password);
 
                       if (user != null) {
-                        // Armazena o usuário logado
-                        CurrentUser.setUser(user['name'], user['email']);
-
-                        // Navega para a tela de lista de tarefas
-                        Navigator.pushReplacementNamed(
-                            context, TaskListScreen.routeName);
+                        _login(user);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Credenciais inválidas!')),
+                          const SnackBar(
+                              content: Text('Credenciais inválidas!')),
                         );
                       }
                     },
@@ -219,20 +266,60 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
 
-                // Botão: Registre-se
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/register');
-                  },
-                  child: const Text(
-                    'Registre-se',
-                    style: TextStyle(
-                      color: Color(0xFF85DDBE), // Verde claro do protótipo
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                const SizedBox(height: 20),
+                // Esqueci minha senha e Registrar-se
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Recuperação de Senha'),
+                              content: const Text(
+                                  'Um e-mail foi enviado para recuperar sua senha.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('OK'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Esqueci a senha',
+                          style: TextStyle(
+                            color:
+                                Color(0xFF85DDBE), // Verde claro do protótipo
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '/',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/register');
+                        },
+                        child: const Text(
+                          'Registre-se',
+                          style: TextStyle(
+                            color:
+                                Color(0xFF85DDBE), // Verde claro do protótipo
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -250,7 +337,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   context: context,
                   builder: (context) => AlertDialog(
                     title: const Text('Ajuda e Suporte'),
-                    content: const Text('Entre em contato via support@cleartask.com'),
+                    content: const Text(
+                        'Entre em contato via support@cleartask.com'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),

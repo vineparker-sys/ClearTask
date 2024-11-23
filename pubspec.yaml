@@ -1,5 +1,5 @@
-name: todo_app
-description: A new Flutter project.
+name: ClearTask
+description: A time management App.
 
 publish_to: 'none'
 
@@ -18,6 +18,8 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   path_provider: ^2.0.15
   timezone: ^0.10.0
+  email_validator: ^3.0.0
+  shared_preferences: ^2.3.3
 
 dev_dependencies:
   flutter_test:
